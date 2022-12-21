@@ -326,3 +326,7 @@ func (renderer *OpenGL3) invalidateDeviceObjects() {
 		renderer.fontTexture = 0
 	}
 }
+
+func (renderer *OpenGL3) PostRender() {
+
+}

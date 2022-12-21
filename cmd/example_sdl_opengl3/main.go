@@ -1,3 +1,4 @@
+//go:build sdl
 // +build sdl
 
 package main
@@ -24,6 +25,11 @@ func main() {
 		os.Exit(-1)
 	}
 	defer platform.Dispose()
+
+	err = platform.CreateGLContext()
+	if err != nil {
+		panic(err)
+	}
 
 	renderer, err := renderers.NewOpenGL3(io)
 	if err != nil {
