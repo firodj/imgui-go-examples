@@ -57,7 +57,7 @@ func (renderer *OpenGL3) Dispose() {
 }
 
 // PreRender clears the framebuffer.
-func (renderer *OpenGL3) PreRender(clearColor [3]float32) {
+func (renderer *OpenGL3) PreRender(clearColor [4]float32) {
 	gl.ClearColor(clearColor[0], clearColor[1], clearColor[2], 1.0)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 }

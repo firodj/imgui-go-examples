@@ -44,9 +44,10 @@ func (board clipboard) SetText(text string) {
 // Renderer covers rendering imgui draw data.
 type Renderer interface {
 	// PreRender causes the display buffer to be prepared for new output.
-	PreRender(clearColor [3]float32)
+	PreRender(clearColor [4]float32)
 	// Render draws the provided imgui draw data.
 	Render(displaySize [2]float32, framebufferSize [2]float32, drawData imgui.DrawData)
+	PostRender()
 }
 
 const (
@@ -61,7 +62,7 @@ func Run(p Platform, r Renderer) {
 
 	showDemoWindow := false
 	showGoDemoWindow := false
-	clearColor := [3]float32{0.0, 0.0, 0.0}
+	clearColor := [4]float32{0.45, 0.55, 0.60, 1.00}
 	f := float32(0)
 	counter := 0
 	showAnotherWindow := false
@@ -79,7 +80,7 @@ func Run(p Platform, r Renderer) {
 			imgui.Text("ภาษาไทย测试조선말")                   // To display these, you'll need to register a compatible font
 			imgui.Text("Hello, world!")                  // Display some text
 			imgui.SliderFloat("float", &f, 0.0, 1.0)     // Edit 1 float using a slider from 0.0f to 1.0f
-			imgui.ColorEdit3("clear color", &clearColor) // Edit 3 floats representing a color
+			imgui.ColorEdit4("clear color", &clearColor) // Edit 3 floats representing a color
 
 			imgui.Checkbox("Demo Window", &showDemoWindow) // Edit bools storing our window open/close state
 			imgui.Checkbox("Go Demo Window", &showGoDemoWindow)
@@ -129,6 +130,7 @@ func Run(p Platform, r Renderer) {
 		// app.RenderScene()
 
 		r.Render(p.DisplaySize(), p.FramebufferSize(), imgui.RenderedDrawData())
+		r.PostRender()
 		p.PostRender()
 
 		// sleep to avoid 100% CPU usage for this demo
