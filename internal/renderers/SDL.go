@@ -74,15 +74,19 @@ func (renderer *SDLRenderer) PreRender(clearColor [4]float32) {
 // Render draws the provided imgui draw data.
 func (renderer *SDLRenderer) Render(displaySize [2]float32, framebufferSize [2]float32, drawData imgui.DrawData) {
 	// Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
-	displayWidth, displayHeight := displaySize[0], displaySize[1]
+	//displayWidth, displayHeight := displaySize[0], displaySize[1]
 	fbWidth, fbHeight := framebufferSize[0], framebufferSize[1]
 	if (fbWidth <= 0) || (fbHeight <= 0) {
 		return
 	}
-	//rsx, rsy := renderer.sdlRenderer.GetScale()
-	render_scale := []float32{
-		fbWidth / displayWidth,
-		fbHeight / displayHeight,
+
+	rsx, rsy := renderer.sdlRenderer.GetScale()
+	renderScale := imgui.Vec2{ X: 1, Y: 1 }
+	if rsx == 1 {
+		renderScale.X = drawData.FrameBufferScale().X
+	}
+	if rsy == 1 {
+		renderScale.Y = drawData.FrameBufferScale().Y
 	}
 
 	// Backup state
@@ -94,10 +98,7 @@ func (renderer *SDLRenderer) Render(displaySize [2]float32, framebufferSize [2]f
 
 	// Setup viewport
 	clip_off := drawData.DisplayPos()
-	clip_scale := imgui.Vec2{
-		X: render_scale[0],
-		Y: render_scale[1],
-	}
+	clip_scale := renderScale
 
 	vtxSize, posVtx, uvVtx, colVtx := imgui.VertexBufferLayout()
 	idxSize := imgui.IndexBufferLayout()
@@ -146,29 +147,6 @@ func (renderer *SDLRenderer) Render(displaySize [2]float32, framebufferSize [2]f
 				xy := (*float32)(unsafe.Add(vtxOfs, posVtx))
 				uv := (*float32)(unsafe.Add(vtxOfs, uvVtx))
 				color := (*sdl.Color)(unsafe.Add(vtxOfs, colVtx))
-
-				/*var indices interface{}
-				switch idxSize {
-				case 1:
-					indices1 := unsafe.Slice((*byte)(idxOfs), cmd.ElementCount())
-					indices = indices1
-				case 2:
-					indices2 := unsafe.Slice((*uint16)(idxOfs), cmd.ElementCount())
-					indices = indices2
-				case 4:
-					indices4 := unsafe.Slice((*uint16)(idxOfs), cmd.ElementCount())
-					indices = indices4
-				default:
-					panic(fmt.Errorf("unsupported idx size = %d",  idxSize))
-				}
-				*/
-
-				_ = vertexBufferSize
-				_ = tex
-				_ = xy
-				_ = uv
-				_ = color
-
 				num_vert := vertexBufferSize - cmd.VertexOffset()
 
 				err := renderer.sdlRenderer.RenderGeometryRaw(tex,
@@ -183,8 +161,6 @@ func (renderer *SDLRenderer) Render(displaySize [2]float32, framebufferSize [2]f
 				}
 			}
 		}
-
-
 	}
 
 	// Restore modified State

@@ -42,8 +42,16 @@ func NewSDL(io imgui.IO, clientAPI SDLClientAPI) (*SDL, error) {
 		return nil, fmt.Errorf("failed to initialize SDL2: %w", err)
 	}
 
+	var flags sdl.WindowFlags
+	switch clientAPI {
+	case SDLClientAPIOpenGL2, SDLClientAPIOpenGL3:
+		flags = sdl.WINDOW_OPENGL
+	default:
+		flags = sdl.WINDOW_ALLOW_HIGHDPI
+	}
+
 	window, err := sdl.CreateWindow("ImGui-Go SDL2+"+string(clientAPI)+" example",
-		sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED, windowWidth, windowHeight, sdl.WINDOW_OPENGL)
+		sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED, windowWidth, windowHeight, flags)
 	if err != nil {
 		sdl.Quit()
 		return nil, fmt.Errorf("failed to create window: %w", err)
@@ -93,7 +101,9 @@ func (platform *SDL) CreateGLContext() error {
 }
 
 func (platform *SDL) CreateRenderer() (*sdl.Renderer, error) {
-	return sdl.CreateRenderer(platform.window, -1, sdl.RENDERER_PRESENTVSYNC | sdl.RENDERER_ACCELERATED)
+	sdlRenderer, err := sdl.CreateRenderer(platform.window, -1, sdl.RENDERER_PRESENTVSYNC | sdl.RENDERER_ACCELERATED)
+	sdlRenderer.SetScale(2, 2)
+	return sdlRenderer, err
 }
 
 // Dispose cleans up the resources.
@@ -199,7 +209,7 @@ func (platform *SDL) processEvent(event sdl.Event) {
 	case sdl.QUIT:
 		platform.shouldStop = true
 	case sdl.MOUSEWHEEL:
-		wheelEvent := event.(*sdl.MouseWheelEvent)
+		wheelEvent := event.(sdl.MouseWheelEvent)
 		var deltaX, deltaY float32
 		if wheelEvent.X > 0 {
 			deltaX++

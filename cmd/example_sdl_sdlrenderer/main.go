@@ -28,7 +28,7 @@ func main() {
 
 	rend, err := platform.CreateRenderer()
 	if err != nil {
-					panic(err)
+		panic(err)
 	}
 	sdlRenderer, err := renderers.NewSDLRenderer(rend)
 	if err != nil {
