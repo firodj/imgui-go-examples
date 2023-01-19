@@ -1,3 +1,4 @@
+//go:build sdl
 // +build sdl
 
 package platforms
@@ -15,8 +16,8 @@ type SDLClientAPI string
 
 // This is a list of SDLClientAPI constants.
 const (
-	SDLClientAPIOpenGL2 SDLClientAPI = "OpenGL2"
-	SDLClientAPIOpenGL3 SDLClientAPI = "OpenGL3"
+	SDLClientAPIOpenGL2     SDLClientAPI = "OpenGL2"
+	SDLClientAPIOpenGL3     SDLClientAPI = "OpenGL3"
 	SDLClientAPISDLRenderer SDLClientAPI = "SDLRenderer"
 )
 
@@ -42,7 +43,7 @@ func NewSDL(io imgui.IO, clientAPI SDLClientAPI) (*SDL, error) {
 		return nil, fmt.Errorf("failed to initialize SDL2: %w", err)
 	}
 
-	var flags sdl.WindowFlags
+	var flags uint32
 	switch clientAPI {
 	case SDLClientAPIOpenGL2, SDLClientAPIOpenGL3:
 		flags = sdl.WINDOW_OPENGL
@@ -58,8 +59,8 @@ func NewSDL(io imgui.IO, clientAPI SDLClientAPI) (*SDL, error) {
 	}
 
 	platform := &SDL{
-		imguiIO: io,
-		window:  window,
+		imguiIO:   io,
+		window:    window,
 		clientAPI: clientAPI,
 	}
 	platform.setKeyMapping()
@@ -101,7 +102,7 @@ func (platform *SDL) CreateGLContext() error {
 }
 
 func (platform *SDL) CreateRenderer() (*sdl.Renderer, error) {
-	sdlRenderer, err := sdl.CreateRenderer(platform.window, -1, sdl.RENDERER_PRESENTVSYNC | sdl.RENDERER_ACCELERATED)
+	sdlRenderer, err := sdl.CreateRenderer(platform.window, -1, sdl.RENDERER_PRESENTVSYNC|sdl.RENDERER_ACCELERATED)
 	sdlRenderer.SetScale(2, 2)
 	return sdlRenderer, err
 }
@@ -159,9 +160,12 @@ func (platform *SDL) NewFrame() {
 	// If a mouse press event came, always pass it as "mouse held this frame", so we don't miss click-release events that are shorter than 1 frame.
 	x, y, state := sdl.GetMouseState()
 	platform.imguiIO.SetMousePosition(imgui.Vec2{X: float32(x), Y: float32(y)})
-	for i, button := range []sdl.ButtonMask{sdl.ButtonLMask, sdl.ButtonRMask, sdl.ButtonMMask} {
-		platform.imguiIO.SetMouseButtonDown(i, platform.buttonsDown[i] || (state&button) != 0)
-		platform.buttonsDown[i] = false
+	for _, button := range []uint8{sdl.BUTTON_LEFT, sdl.BUTTON_RIGHT, sdl.BUTTON_MIDDLE} {
+		mask := sdl.Button(uint32(button))
+		if btn := sdlButtonToPlatform(button); btn != -1 {
+			platform.imguiIO.SetMouseButtonDown(btn, platform.buttonsDown[btn] || (state&mask) != 0)
+			platform.buttonsDown[btn] = false
+		}
 	}
 }
 
@@ -204,12 +208,24 @@ func (platform *SDL) setKeyMapping() {
 	}
 }
 
+func sdlButtonToPlatform(button uint8) int {
+	switch button {
+	case sdl.BUTTON_LEFT:
+		return mouseButtonPrimary
+	case sdl.BUTTON_RIGHT:
+		return mouseButtonSecondary
+	case sdl.BUTTON_MIDDLE:
+		return mouseButtonTertiary
+	}
+	return -1
+}
+
 func (platform *SDL) processEvent(event sdl.Event) {
 	switch event.GetType() {
 	case sdl.QUIT:
 		platform.shouldStop = true
 	case sdl.MOUSEWHEEL:
-		wheelEvent := event.(sdl.MouseWheelEvent)
+		wheelEvent := event.(*sdl.MouseWheelEvent)
 		var deltaX, deltaY float32
 		if wheelEvent.X > 0 {
 			deltaX++
@@ -223,24 +239,19 @@ func (platform *SDL) processEvent(event sdl.Event) {
 		}
 		platform.imguiIO.AddMouseWheelDelta(deltaX, deltaY)
 	case sdl.MOUSEBUTTONDOWN:
-		buttonEvent := event.(sdl.MouseButtonEvent)
-		switch buttonEvent.Button {
-		case sdl.ButtonLMask:
-			platform.buttonsDown[mouseButtonPrimary] = true
-		case sdl.ButtonRMask:
-			platform.buttonsDown[mouseButtonSecondary] = true
-		case sdl.ButtonMMask:
-			platform.buttonsDown[mouseButtonTertiary] = true
+		buttonEvent := event.(*sdl.MouseButtonEvent)
+		if btn := sdlButtonToPlatform(buttonEvent.Button); btn != -1 {
+			platform.buttonsDown[btn] = true
 		}
 	case sdl.TEXTINPUT:
-		inputEvent := event.(sdl.TextInputEvent)
+		inputEvent := event.(*sdl.TextInputEvent)
 		platform.imguiIO.AddInputCharacters(string(inputEvent.Text[:]))
 	case sdl.KEYDOWN:
-		keyEvent := event.(sdl.KeyboardEvent)
+		keyEvent := event.(*sdl.KeyboardEvent)
 		platform.imguiIO.KeyPress(int(keyEvent.Keysym.Scancode))
 		platform.updateKeyModifier()
 	case sdl.KEYUP:
-		keyEvent := event.(sdl.KeyboardEvent)
+		keyEvent := event.(*sdl.KeyboardEvent)
 		platform.imguiIO.KeyRelease(int(keyEvent.Keysym.Scancode))
 		platform.updateKeyModifier()
 	}

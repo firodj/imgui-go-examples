@@ -14,7 +14,7 @@ type SDLRenderer struct {
 }
 
 func NewSDLRenderer(sdlRenderer *sdl.Renderer) (*SDLRenderer, error) {
-	renderer:= &SDLRenderer {
+	renderer := &SDLRenderer{
 		sdlRenderer: sdlRenderer,
 	}
 	renderer.createDeviceObjects()
@@ -43,9 +43,9 @@ func (renderer *SDLRenderer) createFontsTexture() {
 		panic(err)
 	}
 
-	pixels := unsafe.Slice((*byte)(image.Pixels), image.Width*image.Height*4)
+	//pixels := unsafe.Slice((*byte)(image.Pixels), image.Width*image.Height*4)
 
-	renderer.fontTexture.Update(nil, pixels, 4 * image.Width)
+	renderer.fontTexture.Update(nil, image.Pixels, 4*image.Width)
 	renderer.fontTexture.SetBlendMode(sdl.BLENDMODE_BLEND)
 
 	// Store our identifier
@@ -63,10 +63,10 @@ func (renderer *SDLRenderer) createDeviceObjects() {
 // PreRender causes the display buffer to be prepared for new output.
 func (renderer *SDLRenderer) PreRender(clearColor [4]float32) {
 	renderer.sdlRenderer.SetDrawColor(
-		uint8(clearColor[0] * 255),
-		uint8(clearColor[1] * 255),
-		uint8(clearColor[2] * 255),
-		uint8(clearColor[3] * 255),
+		uint8(clearColor[0]*255),
+		uint8(clearColor[1]*255),
+		uint8(clearColor[2]*255),
+		uint8(clearColor[3]*255),
 	)
 	renderer.sdlRenderer.Clear()
 }
@@ -81,7 +81,7 @@ func (renderer *SDLRenderer) Render(displaySize [2]float32, framebufferSize [2]f
 	}
 
 	rsx, rsy := renderer.sdlRenderer.GetScale()
-	renderScale := imgui.Vec2{ X: 1, Y: 1 }
+	renderScale := imgui.Vec2{X: 1, Y: 1}
 	if rsx == 1 {
 		renderScale.X = drawData.FrameBufferScale().X
 	}
@@ -123,15 +123,23 @@ func (renderer *SDLRenderer) Render(displaySize [2]float32, framebufferSize [2]f
 					Y: (cmd.ClipRect().W - clip_off.Y) * clip_scale.Y,
 				}
 
-				if clip_min.X < 0 { clip_min.X = 0.0 }
-				if clip_min.Y < 0 { clip_min.Y = 0.0 }
-				if clip_max.X > fbWidth { clip_max.X = fbWidth }
-				if clip_max.Y > fbHeight { clip_max.Y = fbHeight }
+				if clip_min.X < 0 {
+					clip_min.X = 0.0
+				}
+				if clip_min.Y < 0 {
+					clip_min.Y = 0.0
+				}
+				if clip_max.X > fbWidth {
+					clip_max.X = fbWidth
+				}
+				if clip_max.Y > fbHeight {
+					clip_max.Y = fbHeight
+				}
 				if (clip_max.X <= clip_min.X) || (clip_max.Y <= clip_min.Y) {
 					continue
 				}
 
-				r := sdl.Rect {
+				r := sdl.Rect{
 					X: int32(clip_min.X),
 					Y: int32(clip_min.Y),
 					W: int32(clip_max.X - clip_min.X),
